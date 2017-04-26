@@ -33,7 +33,7 @@ function register(dir: string) {
 
     let data = {
         'Directory': dir,
-        'JsonConfig': path.join(dir, 'package.json')
+        'JsonConfig': path.join(dir, 'ssdt.json')
     };
     
     let client = http.createClient(14801, "127.0.0.1");
@@ -170,14 +170,17 @@ function buildDacpac() {
     let request = client.request('POST', '/build/', headers);
     var context: s2Context;
     request.on('response', function (response) {
+        var json: string = '';
         response.on('data', function (chunk) {            
             // setContext(<s2Context> JSON.parse(chunk));
             // console.log(JSON.parse(chunk));
-            console.log(JSON.parse(chunk));
+            //console.log(JSON.parse(chunk));
+            json += chunk;
             
         });
         response.on('end', function () {
             console.log('response ended with code: ' + response.statusCode);
+            console.log(JSON.parse(json));
         });
     });
     

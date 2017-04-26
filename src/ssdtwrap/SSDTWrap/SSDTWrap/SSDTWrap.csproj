@@ -88,16 +88,33 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Handler.cs" />
+    <Compile Include="Handlers\BuildHandler.cs" />
+    <Compile Include="Messages\Context.cs" />
+    <Compile Include="Messages\ContextBag.cs" />
+    <Compile Include="Messages\ContextSlimMessage.cs" />
+    <Compile Include="Handlers\Handler.cs" />
+    <Compile Include="Messages\RegistrationHandlerMessage.cs" />
     <Compile Include="Listener.cs" />
-    <Compile Include="ModelWrapper.cs" />
+    <Compile Include="DacFx\ModelWrapper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReferencesHandler.cs" />
+    <Compile Include="Handlers\ReferencesHandler.cs" />
+    <Compile Include="Handlers\RegistrationHandler.cs" />
+    <Compile Include="Messages\Reference.cs" />
+    <Compile Include="Messages\ReferencesHandlerMessage.cs" />
+    <Compile Include="Messages\ReferencesResponse.cs" />
+    <Compile Include="Handlers\UpdateHandler.cs" />
+    <Compile Include="Messages\UpdateHandlerMessage.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Dir2Dac\Dir2Dac.csproj">
+      <Project>{434935be-fcd9-4c5d-8ba4-6089587d37d6}</Project>
+      <Name>Dir2Dac</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
