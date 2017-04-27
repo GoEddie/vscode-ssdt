@@ -53,19 +53,24 @@ function register(dir: string) {
     g_ErrorsChannel.appendLine("Starting model load...");        
     g_ErrorsChannel.show(); 
 
+    var startTime = Date.now();
     let request = client.request('POST', '/register/', headers);
     var context: s2Context;
+
     request.on('response', function (response) {
-        var json = ''
+        var json = '';
+        
+
         response.on('data', function (chunk) {            
             //setContext(<s2Context> JSON.parse(chunk));
             json += chunk;
         });
         response.on('end', function () {
             console.log('response ended');
-            g_ErrorsChannel.appendLine("Starting model load...finshed");        
+            var endTime = Date.now();
+            
             setContext(<s2Context> JSON.parse(json));
-
+            g_ErrorsChannel.appendLine("Starting model load...finshed it took " + (endTime - startTime).toString() + ' milliseconds');        
                 var watcher = vscode.workspace.createFileSystemWatcher("**/*.sql"); //glob search string
              //   watcher.ignoreChangeEvents = false;
 
@@ -173,6 +178,7 @@ function buildDacpac() {
     
     if(g_BuildErrors){
         vscode.window.showInformationMessage("oh noes! you have errors so we can't build until you fix them :(");
+        return;
     }
 
     let data = {
@@ -184,8 +190,9 @@ function buildDacpac() {
         'Host': '127.0.0.1',
         'Content-Type': 'application/json'
     };
-
+    var startTime = Date.now();
     let request = client.request('POST', '/build/', headers);
+    g_ErrorsChannel.appendLine('writing dacpac...');
     var context: s2Context;
     request.on('response', function (response) {
         var json: string = '';
@@ -197,12 +204,13 @@ function buildDacpac() {
             
         });
         response.on('end', function () {
+            var endTime = Date.now();
             console.log('response ended with code: ' + response.statusCode);
             console.log(JSON.parse(json));
             var buildContext:buildContext = <buildContext> JSON.parse(json);
             if(response.statusCode == 200)
             {
-                g_ErrorsChannel.appendLine('dacpac written to: ' + buildContext.SsdtSettings.OutputFile);                
+                g_ErrorsChannel.appendLine('dacpac written to: ' + buildContext.SsdtSettings.OutputFile + ' build time was ' + (endTime - startTime).toString() +' milliseconds');                
             }else{
                 g_ErrorsChannel.appendLine('got some error? total response: ' + json );                
             }

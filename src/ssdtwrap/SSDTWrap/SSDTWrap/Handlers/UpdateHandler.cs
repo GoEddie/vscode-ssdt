@@ -33,10 +33,10 @@ namespace SSDTWrap
             var file = new FileInfo(message.File);
             var parseErrors = model.AddFile(file).ToList();
 
-            model.Validate();
+            var modelErrors = model.Validate();
             Context.Messages.Clear();
-            var modelErrors = model.CurrentModel().GetModelErrors().ToList().ToGenericError();
-            Context.Messages.AddRange(modelErrors);
+             
+            Context.Messages.AddRange(modelErrors.ToGenericError());
             Context.Messages.AddRange(parseErrors.ToGenericError(file.FullName));
 
             return JsonConvert.SerializeObject(Context);
@@ -72,6 +72,7 @@ namespace SSDTWrap
 
     public static class GenericErrorExtensions
     {
+
         public static List<GenericError> ToGenericError(this List<ParseError> source, string filename)
         {
             var ret = new List<GenericError>();
@@ -93,17 +94,28 @@ namespace SSDTWrap
 
             return ret;
         }
+
+
+        public static List<GenericError> ToGenericError(this IList<DacModelMessage> source)
+        {
+            var ret = new List<GenericError>();
+            foreach (var error in source)
+            {
+                ret.Add(new GenericError(error));
+            }
+
+            return ret;
+        }
     }
 
     public class GenericError
     {
-
-
         public string Message { get; set; }
         public int Line { get; set; }
         public string FileName { get; set; }
         public string Prefix { get; set; }
         public int Column { get;set; }
+        public string SourceName { get; set; }
 
         public GenericError(ParseError err, string fileName)
         {
@@ -125,8 +137,11 @@ namespace SSDTWrap
             Column = modelError.Column;
         }
 
-        public string SourceName { get; set; }
+        public GenericError(DacModelMessage modelMessage)
+        {
+            Message = modelMessage.Message;
+            SourceName = modelMessage.MessageType.ToString();
+            Prefix = $"{modelMessage.Prefix}{modelMessage.Number}";
+        }
     }
-
-
 }

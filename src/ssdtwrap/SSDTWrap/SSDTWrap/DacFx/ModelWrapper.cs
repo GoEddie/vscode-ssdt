@@ -29,8 +29,10 @@ namespace SSDTWrap.DacFx
 
             _model = GetModel();
             _parser = GetParser();
-            FillModel();
+            ModelMessages = FillModel();
         }
+
+        public IList<DacModelMessage> ModelMessages { get; set; }
 
         public TSqlModel CurrentModel()
         {
@@ -58,21 +60,22 @@ namespace SSDTWrap.DacFx
             }
         }
 
-        public List<ParseError> ParseErrors = new List<ParseError>();
+        public List<GenericError> ParseErrors = new List<GenericError>();
 
-        private void FillModel()
+        private IList<DacModelMessage> FillModel()
         {
             var dir = new DirectoryInfo(_directory);
             foreach (var file in dir.GetFiles("*.sql", SearchOption.AllDirectories))
             {
-                AddFile(file);
+                var errors = AddFile(file).ToList();
+                ParseErrors.AddRange(errors.ToGenericError(file.FullName));
             }
-            Validate();
+            return Validate();
         }
 
-        public void Validate()
+        public IList<DacModelMessage> Validate()
         {
-            _model.Validate();
+            return _model.Validate();
         }
 
         private Dictionary<string, List<string>> _files = new Dictionary<string, List<string>>();
@@ -98,8 +101,7 @@ namespace SSDTWrap.DacFx
 
             _caches[name] = lastChanged;
             var scriptList = new List<string>();
-            IList<ParseError> allErrors = new List<ParseError>()
-                ;
+            List<ParseError> allErrors = new List<ParseError>();
             foreach (var script in scripts)
             {
                 IList<ParseError> err;
@@ -113,8 +115,8 @@ namespace SSDTWrap.DacFx
             }
 
             _files[name] = scriptList;
-            Console.WriteLine("Added File: " + name);
-            ParseErrors.AddRange(allErrors);
+           
+            ParseErrors.AddRange(allErrors.ToGenericError(file.Name));
 
             return allErrors;
         }

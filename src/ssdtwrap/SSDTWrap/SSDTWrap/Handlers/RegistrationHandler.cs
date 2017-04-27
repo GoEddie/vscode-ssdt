@@ -26,8 +26,8 @@ namespace SSDTWrap
             Context.SsdtSettings = JsonConvert.DeserializeObject<SsdtConfig>(GetText());
             var wrapper = new ModelWrapper(Context.SsdtSettings.SqlServerVersion, message.Directory, Context.SsdtSettings.RefactorLog, Context.SsdtSettings.PreScript, Context.SsdtSettings.PostScript, Context.SsdtSettings.References);
             Context.Settings["Model"] = wrapper;
-            
-            Context.Messages = wrapper.CurrentModel().GetModelErrors().ToList().ToGenericError();
+            Context.Messages = wrapper.ModelMessages.ToGenericError();
+            //Context.Messages.AddRange(wrapper.ParseErrors.ToGenericError());
             return JsonConvert.SerializeObject(Context);
         }
 
