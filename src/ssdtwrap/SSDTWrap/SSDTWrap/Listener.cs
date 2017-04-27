@@ -41,30 +41,32 @@ namespace SSDTWrap
                         var url = request.Url;
                         Console.WriteLine("URL: " + url.AbsolutePath);
 
-                        var reader = new StreamReader(request.InputStream);
-                        Handler handler = null;
-
-                        switch (url.AbsolutePath)
+                        using (var reader = new StreamReader(request.InputStream))
                         {
-                            case "/register/":
-                                handler = new RegistrationHandler(reader.ReadToEnd());
-                                break;
-                            case "/references/":
-                                handler = new ReferencesHandler(reader.ReadToEnd());
-                                break;
-                            case "/update/":
-                                handler = new UpdateHandler(reader.ReadToEnd());
-                                break;
-                            case "/build/":
-                                handler = new BuildHandler(reader.ReadToEnd());
-                                break;
-                        }
+                            Handler handler = null;
 
-                        if (handler != null)
-                        {
-                            var writer = new StreamWriter(response.OutputStream);
-                            writer.Write(handler.Execute());
-                            writer.Close();
+                            switch (url.AbsolutePath)
+                            {
+                                case "/register/":
+                                    handler = new RegistrationHandler(reader.ReadToEnd());
+                                    break;
+                                case "/references/":
+                                    handler = new ReferencesHandler(reader.ReadToEnd());
+                                    break;
+                                case "/update/":
+                                    handler = new UpdateHandler(reader.ReadToEnd());
+                                    break;
+                                case "/build/":
+                                    handler = new BuildHandler(reader.ReadToEnd());
+                                    break;
+                            }
+
+                            if (handler != null)
+                            {
+                                var writer = new StreamWriter(response.OutputStream);
+                                writer.Write(handler.Execute());
+                                writer.Close();
+                            }
                         }
                     }
                     catch (Exception e)

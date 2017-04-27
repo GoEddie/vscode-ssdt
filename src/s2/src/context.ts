@@ -5,6 +5,15 @@ interface s2Context{
     Messages: DacModelError[];
 }
 
+interface buildContext{
+    Token: string;
+    SsdtSettings: SsdtSettings;
+}
+
+interface SsdtSettings{
+    OutputFile: string
+}
+
 interface DacModelError{
     ErrorCode: number;
     Line: number;

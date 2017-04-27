@@ -12,20 +12,28 @@ let fs = require('fs');
 
 var g_s2Context: s2Context;
 var g_ErrorsChannel: vscode.OutputChannel;
+var g_BuildErrors: boolean = false;
 
-function showErrors(context: s2Context){
+function showErrors(context: s2Context): boolean{
+    var hasErrors = false;
+
     g_ErrorsChannel.clear();
     for(var message of context.Messages){
         console.log(message.Message);
+        hasErrors = true;
         g_ErrorsChannel.appendLine(message.Prefix + message.ErrorCode + ": " + message.Message + " " +message.SourceName.replace(':0', '') + " line " + message.Line + " column: " + message.Column);        
     }   
 
     g_ErrorsChannel.show(); 
+    g_BuildErrors = hasErrors;
+    return hasErrors;
 }
 
 function setContext(context: s2Context){
     g_s2Context = context;
-    showErrors(context);
+    if(showErrors(context)){
+        //vscode.window.showInformationMessage("oh noes! project has build errors :(");
+    }
     console.log('we have a new context, token: ' + g_s2Context.Token);
 }
 
@@ -41,6 +49,9 @@ function register(dir: string) {
         'Host': '127.0.0.1',
         'Content-Type': 'application/json'
     };
+    
+    g_ErrorsChannel.appendLine("Starting model load...");        
+    g_ErrorsChannel.show(); 
 
     let request = client.request('POST', '/register/', headers);
     var context: s2Context;
@@ -52,13 +63,14 @@ function register(dir: string) {
         });
         response.on('end', function () {
             console.log('response ended');
+            g_ErrorsChannel.appendLine("Starting model load...finshed");        
             setContext(<s2Context> JSON.parse(json));
 
                 var watcher = vscode.workspace.createFileSystemWatcher("**/*.sql"); //glob search string
              //   watcher.ignoreChangeEvents = false;
 
                 watcher.onDidChange(() => {
-                    vscode.window.showInformationMessage("change applied!"); //In my opinion this should be called
+                    
                     
                     updateFile(vscode.window.activeTextEditor.document.fileName);
 
@@ -103,8 +115,10 @@ function updateFile(fileName: string) {
         });
         response.on('end', function () {
             console.log('response ended with code: ' + response.statusCode);
-
-            showErrors(<s2Context> JSON.parse(json));
+            
+            if(showErrors(<s2Context> JSON.parse(json))){
+               // vscode.window.showInformationMessage("oh noes! project has build errors :(");
+            }
         });
     });
     
@@ -157,6 +171,10 @@ function buildDacpac() {
         return;
     }
     
+    if(g_BuildErrors){
+        vscode.window.showInformationMessage("oh noes! you have errors so we can't build until you fix them :(");
+    }
+
     let data = {
         'Token': g_s2Context.Token        
     };
@@ -181,6 +199,13 @@ function buildDacpac() {
         response.on('end', function () {
             console.log('response ended with code: ' + response.statusCode);
             console.log(JSON.parse(json));
+            var buildContext:buildContext = <buildContext> JSON.parse(json);
+            if(response.statusCode == 200)
+            {
+                g_ErrorsChannel.appendLine('dacpac written to: ' + buildContext.SsdtSettings.OutputFile);                
+            }else{
+                g_ErrorsChannel.appendLine('got some error? total response: ' + json );                
+            }
         });
     });
     
@@ -197,7 +222,10 @@ export function referenceProvider(selector: vscode.DocumentSelector, provider: v
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     
+    
+    g_ErrorsChannel = vscode.window.createOutputChannel("SSDT Validation Errors");
     register(vscode.workspace.rootPath);
+    
     // vscode.languages.registerReferenceProvider(function(selector: vscode.DocumentSelector, provider: vscode.ReferenceProvider){
 
     // });
@@ -206,8 +234,6 @@ export function activate(context: vscode.ExtensionContext) {
         buildDacpac();
     });
     
-    g_ErrorsChannel = vscode.window.createOutputChannel("SSDT Validation Errors");
-
     const providerRegistrations = vscode.Disposable.from(		
 		vscode.languages.registerReferenceProvider('sql', new ssdtReferenceProvider())
 	);
@@ -306,3 +332,4 @@ class SqlName {
         this.Name = name;
     }
 }
+

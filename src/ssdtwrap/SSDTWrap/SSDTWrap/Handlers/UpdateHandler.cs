@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Isam.Esent.Interop;
 using Microsoft.SqlServer.Dac.Model;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Newtonsoft.Json;
@@ -30,26 +31,17 @@ namespace SSDTWrap
 
             
             var file = new FileInfo(message.File);
-            var parseErrors = model.AddFile(file);
+            var parseErrors = model.AddFile(file).ToList();
 
             model.Validate();
-            Context.Messages = model.CurrentModel().GetModelErrors().ToList();
-            Context.Messages.AddRange(parseErrors);
+            Context.Messages.Clear();
+            var modelErrors = model.CurrentModel().GetModelErrors().ToList().ToGenericError();
+            Context.Messages.AddRange(modelErrors);
+            Context.Messages.AddRange(parseErrors.ToGenericError(file.FullName));
+
             return JsonConvert.SerializeObject(Context);
         }
 
-        public class GenericError
-        {
-            public GenericError(ParseError err)
-            {
-                MasterKey this FullTextCatalogAndFileGroup return these instead of specific errors - also on register probably need to do this as well so we pick up all initial erros and not just model validation errrors.
-            }
-
-            public GenericError(DacModelError modelError)
-            {
-                
-            }
-        }
         /*
          public ParseError(int number, int offset, int line, int column, string message);
     public int Number { get; }
@@ -77,4 +69,64 @@ namespace SSDTWrap
    /// </summary>
    public string SourceName { get; }*/
     }
+
+    public static class GenericErrorExtensions
+    {
+        public static List<GenericError> ToGenericError(this List<ParseError> source, string filename)
+        {
+            var ret = new List<GenericError>();
+            foreach (var error in source)
+            {
+                ret.Add(new GenericError(error, filename));
+            }
+
+            return ret;
+        }
+
+        public static List<GenericError> ToGenericError(this List<DacModelError> source)
+        {
+            var ret = new List<GenericError>();
+            foreach (var error in source)
+            {
+                ret.Add(new GenericError(error));
+            }
+
+            return ret;
+        }
+    }
+
+    public class GenericError
+    {
+
+
+        public string Message { get; set; }
+        public int Line { get; set; }
+        public string FileName { get; set; }
+        public string Prefix { get; set; }
+        public int Column { get;set; }
+
+        public GenericError(ParseError err, string fileName)
+        {
+            Message = err.Message;
+            Line = err.Line;
+            FileName = fileName;
+            Prefix = "Parse Error";
+            SourceName = "Parse Error";
+            Column = err.Column;
+        }
+
+        public GenericError(DacModelError modelError)
+        {
+            Message = modelError.Message;
+            Line = modelError.Line;
+            FileName = modelError.SourceName;
+            Prefix = modelError.Prefix;
+            SourceName = modelError.SourceName;
+            Column = modelError.Column;
+        }
+
+        public string SourceName { get; set; }
+    }
+
+
 }

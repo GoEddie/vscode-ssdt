@@ -9,7 +9,7 @@ namespace SSDTWrap.Messages
         public Guid Token;
 
         public Dictionary<string, object> Settings = new Dictionary<string, object>();
-        public List<DacModelError> Messages { get; set; }
+        public List<GenericError> Messages { get; set; }
         public SsdtConfig SsdtSettings { get; set; }
         
     }

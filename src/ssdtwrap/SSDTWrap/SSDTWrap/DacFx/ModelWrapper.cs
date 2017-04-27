@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.SqlServer.Dac.Model;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 
@@ -57,6 +58,8 @@ namespace SSDTWrap.DacFx
             }
         }
 
+        public List<ParseError> ParseErrors = new List<ParseError>();
+
         private void FillModel()
         {
             var dir = new DirectoryInfo(_directory);
@@ -74,7 +77,7 @@ namespace SSDTWrap.DacFx
 
         private Dictionary<string, List<string>> _files = new Dictionary<string, List<string>>();
 
-        public void AddFile(FileInfo file)
+        public IList<ParseError> AddFile(FileInfo file)
         {
             var name = file.FullName;
             var lastChanged = file.LastWriteTimeUtc;
@@ -95,16 +98,25 @@ namespace SSDTWrap.DacFx
 
             _caches[name] = lastChanged;
             var scriptList = new List<string>();
-
+            IList<ParseError> allErrors = new List<ParseError>()
+                ;
             foreach (var script in scripts)
             {
                 IList<ParseError> err;
                 var parsed = _parser.Parse(new StringReader(script.Content), out err);
+                foreach (var error in err)
+                {
+                    allErrors.Add(error);
+                }
                 _model.AddOrUpdateObjects(parsed as TSqlScript, script.Path, new TSqlObjectOptions());
                 scriptList.Add(script.Path);
             }
 
             _files[name] = scriptList;
+            Console.WriteLine("Added File: " + name);
+            ParseErrors.AddRange(allErrors);
+
+            return allErrors;
         }
 
         private string GetChecksum(string s)
@@ -118,19 +130,21 @@ namespace SSDTWrap.DacFx
         {
             var scripts = new List<Script>();
 
-            var content = new StreamReader(fileName).ReadToEnd();
-            int i = 0;
-            foreach (var part in content.Split(new string[]{"\nGO"}, StringSplitOptions.None))
+            using (var reader = new StreamReader(fileName))
             {
-                scripts.Add(new Script()
+                var content = reader.ReadToEnd();
+                int i = 0;
+                foreach (var part in content.Split(new string[] {"\nGO"}, StringSplitOptions.None))
                 {
-                    Checksum = GetChecksum(part),
-                    Content = part,
-                    Path = $"{fileName}:{i++}",
-                    FileName = fileName
-                });
+                    scripts.Add(new Script()
+                    {
+                        Checksum = GetChecksum(part),
+                        Content = part,
+                        Path = $"{fileName}:{i++}",
+                        FileName = fileName
+                    });
+                }
             }
-
             return scripts;
         }
 
